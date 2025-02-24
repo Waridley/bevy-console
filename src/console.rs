@@ -326,9 +326,10 @@ pub struct ConsoleOpen {
 #[derive(Resource)]
 pub(crate) struct ConsoleState {
     pub(crate) buf: String,
-    pub(crate) scrollback: Vec<String>,
+    pub(crate) scrollback: Vec<egui::WidgetText>,
     pub(crate) history: VecDeque<String>,
     pub(crate) history_index: usize,
+    pub(crate) last_width: f32,
 }
 
 impl Default for ConsoleState {
@@ -338,6 +339,7 @@ impl Default for ConsoleState {
             scrollback: Vec::new(),
             history: VecDeque::from([String::new()]),
             history_index: 0,
+            last_width: 0.0,
         }
     }
 }
@@ -386,6 +388,7 @@ pub(crate) fn console_ui(
     mut state: ResMut<ConsoleState>,
     mut command_entered: EventWriter<ConsoleCommandEntered>,
     mut console_open: ResMut<ConsoleOpen>,
+    changed_settings: Query<(), Changed<bevy_egui::EguiSettings>>,
 ) {
     let keyboard_input_events = keyboard_input_events.read().collect::<Vec<_>>();
 
@@ -407,7 +410,7 @@ pub(crate) fn console_ui(
     }
 
     if console_open.open {
-        egui::Window::new(&config.title_name)
+        let resp = egui::Window::new(&config.title_name)
             .collapsible(config.collapsible)
             .default_pos([config.left_pos, config.top_pos])
             .default_size([config.width, config.height])
@@ -432,8 +435,15 @@ pub(crate) fn console_ui(
                         .max_height(scroll_height)
                         .show(ui, |ui| {
                             ui.vertical(|ui| {
-                                for line in &state.scrollback {
-                                    ui.label(style_ansi_text(line, &config));
+                                for line in &mut state.scrollback {
+                                    let galley = line.clone().into_galley(
+                                        ui,
+                                        None,
+                                        ui.available_width(),
+                                        egui::FontSelection::Style(egui::TextStyle::Monospace),
+                                    );
+                                    *line = galley.into();
+                                    ui.label(line.clone());
                                 }
                             });
 
@@ -506,10 +516,10 @@ pub(crate) fn console_ui(
                         && ui.input(|i| i.key_pressed(egui::Key::Enter))
                     {
                         if state.buf.trim().is_empty() {
-                            state.scrollback.push(String::new());
+                            state.scrollback.push(LayoutJob::default().into());
                         } else {
                             let msg = format!("{}{}", config.symbol, state.buf);
-                            state.scrollback.push(msg);
+                            state.scrollback.push(style_ansi_text(&msg, &config).into());
                             let cmd_string = state.buf.clone();
                             state.history.insert(1, cmd_string);
                             if state.history.len() > config.history_size + 1 {
@@ -532,8 +542,9 @@ pub(crate) fn console_ui(
                                         "Command not recognized, recognized commands: `{:?}`",
                                         config.commands.keys().collect::<Vec<_>>()
                                     );
-
-                                    state.scrollback.push("error: Invalid command".into());
+                                    let msg = "error: Invalid command";
+                                    let msg = style_ansi_text(msg, &config);
+                                    state.scrollback.push(msg.into());
                                 }
                             }
 
@@ -580,16 +591,27 @@ pub(crate) fn console_ui(
                     ui.memory_mut(|m| m.request_focus(text_edit_response.id));
                 });
             });
+        if let Some(resp) = resp {
+            if resp.response.rect.width() != state.last_width || !changed_settings.is_empty() {
+                for line in &mut state.scrollback {
+                    if let egui::WidgetText::Galley(galley) = line.clone() {
+                        *line = (*galley.job).clone().into();
+                    }
+                }
+                state.last_width = resp.response.rect.width();
+            }
+        }
     }
 }
 
 pub(crate) fn receive_console_line(
     mut console_state: ResMut<ConsoleState>,
+    config: Res<ConsoleConfiguration>,
     mut events: EventReader<PrintConsoleLine>,
 ) {
     for event in events.read() {
         let event: &PrintConsoleLine = event;
-        console_state.scrollback.push(event.line.clone());
+        console_state.scrollback.push(style_ansi_text(&event.line, &config).into());
     }
 }
 

@@ -240,6 +240,8 @@ pub struct ConsoleConfiguration {
     pub foreground_color: Color32,
     /// Number of suggested commands to show
     pub num_suggestions: usize,
+    /// Maximum number of lines stored in scrollback
+    pub max_scrollback: usize,
 }
 
 impl Default for ConsoleConfiguration {
@@ -261,6 +263,7 @@ impl Default for ConsoleConfiguration {
             background_color: Color32::from_black_alpha(102),
             foreground_color: Color32::LIGHT_GRAY,
             num_suggestions: 4,
+            max_scrollback: usize::MAX,
         }
     }
 }
@@ -326,17 +329,25 @@ pub struct ConsoleOpen {
 #[derive(Resource)]
 pub(crate) struct ConsoleState {
     pub(crate) buf: String,
-    pub(crate) scrollback: Vec<egui::WidgetText>,
+    pub(crate) scrollback: VecDeque<egui::WidgetText>,
     pub(crate) history: VecDeque<String>,
     pub(crate) history_index: usize,
     pub(crate) last_width: f32,
+}
+
+impl ConsoleState {
+    pub fn push(&mut self, text: impl Into<egui::WidgetText>, config: &ConsoleConfiguration) {
+        let extra = (self.scrollback.len() + 1).saturating_sub(config.max_scrollback);
+        self.scrollback.drain(0..extra);
+        self.scrollback.push_back(text.into());
+    }
 }
 
 impl Default for ConsoleState {
     fn default() -> Self {
         ConsoleState {
             buf: String::default(),
-            scrollback: Vec::new(),
+            scrollback: VecDeque::new(),
             history: VecDeque::from([String::new()]),
             history_index: 0,
             last_width: 0.0,
@@ -516,10 +527,10 @@ pub(crate) fn console_ui(
                         && ui.input(|i| i.key_pressed(egui::Key::Enter))
                     {
                         if state.buf.trim().is_empty() {
-                            state.scrollback.push(LayoutJob::default().into());
+                            state.push(LayoutJob::default(), &config);
                         } else {
                             let msg = format!("{}{}", config.symbol, state.buf);
-                            state.scrollback.push(style_ansi_text(&msg, &config).into());
+                            state.push(style_ansi_text(&msg, &config), &config);
                             let cmd_string = state.buf.clone();
                             state.history.insert(1, cmd_string);
                             if state.history.len() > config.history_size + 1 {
@@ -544,7 +555,7 @@ pub(crate) fn console_ui(
                                     );
                                     let msg = "error: Invalid command";
                                     let msg = style_ansi_text(msg, &config);
-                                    state.scrollback.push(msg.into());
+                                    state.push(msg, &config);
                                 }
                             }
 
@@ -611,7 +622,8 @@ pub(crate) fn receive_console_line(
 ) {
     for event in events.read() {
         let event: &PrintConsoleLine = event;
-        console_state.scrollback.push(style_ansi_text(&event.line, &config).into());
+        
+        console_state.push(style_ansi_text(&event.line, &config), &config);
     }
 }
 

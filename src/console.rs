@@ -242,6 +242,10 @@ pub struct ConsoleConfiguration {
     pub num_suggestions: usize,
     /// Maximum number of lines stored in scrollback
     pub max_scrollback: usize,
+    /// Passed to [egui::Window::anchor] if present
+    pub anchor: Option<(egui::Align2, egui::Vec2)>,
+    /// Font size for the console
+    pub font_size: f32,
 }
 
 impl Default for ConsoleConfiguration {
@@ -264,6 +268,8 @@ impl Default for ConsoleConfiguration {
             foreground_color: Color32::LIGHT_GRAY,
             num_suggestions: 4,
             max_scrollback: usize::MAX,
+            anchor: None,
+            font_size: 14.0,
         }
     }
 }
@@ -356,7 +362,7 @@ impl Default for ConsoleState {
 }
 
 fn default_style(config: &ConsoleConfiguration) -> TextFormat {
-    TextFormat::simple(FontId::monospace(14f32), config.foreground_color)
+    TextFormat::simple(FontId::monospace(config.font_size), config.foreground_color)
 }
 
 fn style_ansi_text(str: &str, config: &ConsoleConfiguration) -> LayoutJob {
@@ -421,10 +427,13 @@ pub(crate) fn console_ui(
     }
 
     if console_open.open {
-        let resp = egui::Window::new(&config.title_name)
+        let mut window = egui::Window::new(&config.title_name)
             .collapsible(config.collapsible)
-            .default_pos([config.left_pos, config.top_pos])
-            .default_size([config.width, config.height])
+            .default_pos([config.left_pos, config.top_pos]);
+        if let Some((anchor, offset)) = config.anchor {
+            window = window.anchor(anchor, offset);
+        }
+        let resp = window.default_size([config.width, config.height])
             .resizable(config.resizable)
             .movable(config.moveable)
             .title_bar(config.show_title_bar)

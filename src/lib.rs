@@ -10,7 +10,7 @@ use crate::commands::exit::{exit_command, ExitCommand};
 use crate::commands::help::{help_command, HelpCommand};
 pub use crate::console::{
     AddConsoleCommand, Command, ConsoleCommand, ConsoleCommandEntered, ConsoleConfiguration,
-    ConsoleOpen, NamedCommand, PrintConsoleLine,
+    ConsoleOpen, NamedCommand, PrintConsoleLine, style_ansi_text,
 };
 pub use crate::log::*;
 

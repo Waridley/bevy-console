@@ -365,7 +365,8 @@ fn default_style(config: &ConsoleConfiguration) -> TextFormat {
     TextFormat::simple(FontId::monospace(config.font_size), config.foreground_color)
 }
 
-fn style_ansi_text(str: &str, config: &ConsoleConfiguration) -> LayoutJob {
+/// Creates a [LayoutJob] for a given ANSI-formatted string.
+pub fn style_ansi_text(str: &str, config: &ConsoleConfiguration) -> LayoutJob {
     let mut layout_job = LayoutJob::default();
     for (str, overrides) in parse_ansi_styled_str(str).into_iter() {
         let mut current_style = default_style(config);

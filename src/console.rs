@@ -529,6 +529,7 @@ pub(crate) fn console_ui(
                         if state.buf.trim().is_empty() {
                             state.push(LayoutJob::default(), &config);
                         } else {
+                            state.history_index = 0;
                             let msg = format!("{}{}", config.symbol, state.buf);
                             state.push(style_ansi_text(&msg, &config), &config);
                             let cmd_string = state.buf.clone();

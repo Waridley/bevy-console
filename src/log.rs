@@ -6,7 +6,7 @@ use std::{
 use bevy::{
     app::{App, Update},
     log::tracing_subscriber::{self, Registry},
-    prelude::{EventWriter, IntoSystemConfigs, ResMut, Resource},
+    prelude::{EventWriter, IntoScheduleConfigs, ResMut, Resource},
 };
 
 use crate::{ConsoleSet, PrintConsoleLine};

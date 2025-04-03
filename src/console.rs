@@ -1,6 +1,7 @@
 use bevy::ecs::{
     component::Tick,
-    system::{Resource, SystemMeta, SystemParam},
+    resource::Resource,
+    system::{SystemMeta, SystemParam},
     world::unsafe_world_cell::UnsafeWorldCell,
 };
 use bevy::{input::keyboard::KeyboardInput, prelude::*};
@@ -16,7 +17,7 @@ use shlex::Shlex;
 use std::collections::{BTreeMap, VecDeque};
 use std::marker::PhantomData;
 use std::mem;
-
+use bevy::ecs::system::ScheduleSystem;
 use crate::{
     color::{parse_ansi_styled_str, TextFormattingOverride},
     ConsoleSet,
@@ -298,14 +299,14 @@ pub trait AddConsoleCommand {
     /// ```
     fn add_console_command<T: Command, Params>(
         &mut self,
-        system: impl IntoSystemConfigs<Params>,
+        system: impl IntoScheduleConfigs<ScheduleSystem, Params>,
     ) -> &mut Self;
 }
 
 impl AddConsoleCommand for App {
     fn add_console_command<T: Command, Params>(
         &mut self,
-        system: impl IntoSystemConfigs<Params>,
+        system: impl IntoScheduleConfigs<ScheduleSystem, Params>,
     ) -> &mut Self {
         let sys = move |mut config: ResMut<ConsoleConfiguration>| {
             let command = T::command().no_binary_name(true);
@@ -398,7 +399,7 @@ pub fn style_ansi_text(str: &str, config: &ConsoleConfiguration) -> LayoutJob {
     layout_job
 }
 
-pub(crate) fn console_ui(
+pub fn console_ui(
     mut egui_context: EguiContexts,
     config: Res<ConsoleConfiguration>,
     mut keyboard_input_events: EventReader<KeyboardInput>,
@@ -406,9 +407,10 @@ pub(crate) fn console_ui(
     mut state: ResMut<ConsoleState>,
     mut command_entered: EventWriter<ConsoleCommandEntered>,
     mut console_open: ResMut<ConsoleOpen>,
-    changed_settings: Query<(), Changed<bevy_egui::EguiSettings>>,
+    changed_settings: Query<(), Changed<bevy_egui::EguiContextSettings>>,
 ) {
     let keyboard_input_events = keyboard_input_events.read().collect::<Vec<_>>();
+    trace!(?keyboard_input_events);
 
     // If there is no egui context, return, this can happen when exiting the app
     let ctx = if let Some(ctxt) = egui_context.try_ctx_mut() {
@@ -425,6 +427,7 @@ pub(crate) fn console_ui(
     // avoid opening console if typing in another text input
     if pressed && (console_open.open || !ctx.wants_keyboard_input()) {
         console_open.open = !console_open.open;
+        debug!(console_open=console_open.open)
     }
 
     if console_open.open {

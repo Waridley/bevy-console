@@ -3,14 +3,14 @@
 
 use bevy::prelude::*;
 pub use bevy_console_derive::ConsoleCommand;
-use bevy_egui::{EguiPlugin, EguiUserTextures};
+use bevy_egui::EguiPlugin;
 
 use crate::commands::clear::{clear_command, ClearCommand};
 use crate::commands::exit::{exit_command, ExitCommand};
 use crate::commands::help::{help_command, HelpCommand};
 pub use crate::console::{
-    AddConsoleCommand, Command, ConsoleCommand, ConsoleCommandEntered, ConsoleConfiguration,
-    ConsoleOpen, NamedCommand, PrintConsoleLine, style_ansi_text,
+    style_ansi_text, AddConsoleCommand, Command, ConsoleCommand, ConsoleCommandEntered,
+    ConsoleConfiguration, ConsoleOpen, NamedCommand, PrintConsoleLine,
 };
 pub use crate::log::*;
 

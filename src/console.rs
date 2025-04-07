@@ -1,3 +1,8 @@
+use crate::{
+    color::{parse_ansi_styled_str, TextFormattingOverride},
+    ConsoleSet,
+};
+use bevy::ecs::system::ScheduleSystem;
 use bevy::ecs::{
     component::Tick,
     resource::Resource,
@@ -17,11 +22,6 @@ use shlex::Shlex;
 use std::collections::{BTreeMap, VecDeque};
 use std::marker::PhantomData;
 use std::mem;
-use bevy::ecs::system::ScheduleSystem;
-use crate::{
-    color::{parse_ansi_styled_str, TextFormattingOverride},
-    ConsoleSet,
-};
 
 type ConsoleCommandEnteredReaderSystemParam = EventReader<'static, 'static, ConsoleCommandEntered>;
 
@@ -79,27 +79,28 @@ impl<T> ConsoleCommand<'_, T> {
 
     /// Print `[ok]` in the console.
     pub fn ok(&mut self) {
-        self.console_line.send(PrintConsoleLine::new("[ok]".into()));
+        self.console_line
+            .write(PrintConsoleLine::new("[ok]".into()));
     }
 
     /// Print `[failed]` in the console.
     pub fn failed(&mut self) {
         self.console_line
-            .send(PrintConsoleLine::new("[failed]".into()));
+            .write(PrintConsoleLine::new("[failed]".into()));
     }
 
     /// Print a reply in the console.
     ///
     /// See [`reply!`](crate::reply) for usage with the [`format!`] syntax.
     pub fn reply(&mut self, msg: impl Into<String>) {
-        self.console_line.send(PrintConsoleLine::new(msg.into()));
+        self.console_line.write(PrintConsoleLine::new(msg.into()));
     }
 
     /// Print a reply in the console followed by `[ok]`.
     ///
     /// See [`reply_ok!`](crate::reply_ok) for usage with the [`format!`] syntax.
     pub fn reply_ok(&mut self, msg: impl Into<String>) {
-        self.console_line.send(PrintConsoleLine::new(msg.into()));
+        self.console_line.write(PrintConsoleLine::new(msg.into()));
         self.ok();
     }
 
@@ -107,7 +108,7 @@ impl<T> ConsoleCommand<'_, T> {
     ///
     /// See [`reply_failed!`](crate::reply_failed) for usage with the [`format!`] syntax.
     pub fn reply_failed(&mut self, msg: impl Into<String>) {
-        self.console_line.send(PrintConsoleLine::new(msg.into()));
+        self.console_line.write(PrintConsoleLine::new(msg.into()));
         self.failed();
     }
 }
@@ -169,7 +170,7 @@ unsafe impl<T: Command> SystemParam for ConsoleCommand<'_, T> {
                         return Some(T::from_arg_matches(&matches));
                     }
                     Err(err) => {
-                        console_line.send(PrintConsoleLine::new(err.to_string()));
+                        console_line.write(PrintConsoleLine::new(err.to_string()));
                         return Some(Err(err));
                     }
                 }
@@ -427,7 +428,7 @@ pub fn console_ui(
     // avoid opening console if typing in another text input
     if pressed && (console_open.open || !ctx.wants_keyboard_input()) {
         console_open.open = !console_open.open;
-        debug!(console_open=console_open.open)
+        debug!(console_open = console_open.open)
     }
 
     if console_open.open {
@@ -437,7 +438,8 @@ pub fn console_ui(
         if let Some((anchor, offset)) = config.anchor {
             window = window.anchor(anchor, offset);
         }
-        let resp = window.default_size([config.width, config.height])
+        let resp = window
+            .default_size([config.width, config.height])
             .resizable(config.resizable)
             .movable(config.moveable)
             .title_bar(config.show_title_bar)
@@ -561,7 +563,7 @@ pub fn console_ui(
 
                                 if command.is_some() {
                                     command_entered
-                                        .send(ConsoleCommandEntered { command_name, args });
+                                        .write(ConsoleCommandEntered { command_name, args });
                                 } else {
                                     debug!(
                                         "Command not recognized, recognized commands: `{:?}`",
@@ -636,7 +638,7 @@ pub(crate) fn receive_console_line(
 ) {
     for event in events.read() {
         let event: &PrintConsoleLine = event;
-        
+
         console_state.push(style_ansi_text(&event.line, &config), &config);
     }
 }

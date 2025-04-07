@@ -20,7 +20,7 @@ A simple *Half-Life* inspired console with support for argument parsing powered 
 
 Add `ConsolePlugin` and optionally the resource `ConsoleConfiguration`.
 
-```rust, ignore
+```rust,ignore
 use bevy::prelude::*;
 use bevy_console::{ConsoleConfiguration, ConsolePlugin};
 
@@ -39,7 +39,7 @@ Create a console command struct and system and add it to your app with `.add_con
 
 Add [doc comments](https://doc.rust-lang.org/rust-by-example/meta/doc.html#doc-comments) to your command to provide help information in the console.
 
-```rust, ignore
+```rust,ignore
 use bevy::prelude::*;
 use bevy_console::{reply, AddConsoleCommand, ConsoleCommand, ConsolePlugin};
 use clap::Parser;

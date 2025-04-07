@@ -10,7 +10,7 @@ license = "MIT"
 readme = "README.md"
 
 [dependencies]
-bevy = { version = "0.16.0-rc", default-features = false }
+bevy = { version = "0.16.0-rc", default-features = false, features = ["bevy_log"] }
 clap = { version = "4.5", features = ["derive", "color", "help"] }
 bevy_console_derive = { path = "./bevy_console_derive", version = "0.5.0" }
 bevy_egui = { version = "0.33.0", features = ["serde"], git = "https://github.com/slyedoc/bevy_egui.git", branch = "bevy_0.16" }
@@ -24,3 +24,6 @@ color-print = { version = "0.3" }
 
 [workspace]
 members = ["bevy_console_derive"]
+
+[lints.clippy]
+too-many-arguments = "allow"

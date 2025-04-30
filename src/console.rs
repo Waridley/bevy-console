@@ -414,7 +414,7 @@ pub fn console_ui(
     trace!(?keyboard_input_events);
 
     // If there is no egui context, return, this can happen when exiting the app
-    let ctx = if let Some(ctxt) = egui_context.try_ctx_mut() {
+    let ctx = if let Ok(ctxt) = egui_context.ctx_mut() {
         ctxt
     } else {
         return;

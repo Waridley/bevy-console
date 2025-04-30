@@ -3,7 +3,7 @@
 
 use bevy::prelude::*;
 pub use bevy_console_derive::ConsoleCommand;
-use bevy_egui::EguiPlugin;
+use bevy_egui::{EguiPlugin, EguiPrimaryContextPass};
 
 use crate::commands::clear::{clear_command, ClearCommand};
 use crate::commands::exit::{exit_command, ExitCommand};
@@ -58,11 +58,12 @@ impl Plugin for ConsolePlugin {
             .add_console_command::<ExitCommand, _>(exit_command)
             .add_console_command::<HelpCommand, _>(help_command)
             .add_systems(
+                EguiPrimaryContextPass,
+                console_ui.in_set(ConsoleSet::ConsoleUI),
+            )
+            .add_systems(
                 Update,
-                (
-                    console_ui.in_set(ConsoleSet::ConsoleUI),
-                    receive_console_line.in_set(ConsoleSet::PostCommands),
-                ),
+                receive_console_line.in_set(ConsoleSet::PostCommands),
             )
             .configure_sets(
                 Update,
@@ -77,7 +78,7 @@ impl Plugin for ConsolePlugin {
         // Don't initialize an egui plugin if one already exists.
         // This can happen if another plugin is using egui and was installed before us.
         if !app.is_plugin_added::<EguiPlugin>() {
-            app.add_plugins(EguiPlugin);
+            app.add_plugins(EguiPlugin::default());
         }
     }
 }
